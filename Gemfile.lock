@@ -26,6 +26,7 @@ GEM
     multi_json (1.12.1)
     multipart-post (2.0.0)
     public_suffix (2.0.5)
+    retriable (2.1.0)
     signet (0.7.3)
       addressable (~> 2.3)
       faraday (~> 0.9)
@@ -38,6 +39,7 @@ PLATFORMS
 
 DEPENDENCIES
   google-api-client (= 0.7)
+  retriable (= 2.1.0)
 
 BUNDLED WITH
    1.14.6
