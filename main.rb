@@ -1,12 +1,11 @@
 require 'rubygems'
-gem 'google-api-client', '0.7'
 require 'google/api_client'
-
-options = ARGV
+require 'optparse'
 
 YOUTUBE_API_KEY = File.read('api_key')
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
+UPLOAD_LIST_IDS = []
 
 def get_service
   client = Google::APIClient.new(
@@ -17,17 +16,40 @@ def get_service
   )
   youtube = client.discovered_api(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION)
 
-
   return client, youtube
 end
 
 
-def main
+def populatePlaylist
+  File.readlines('upload_lists').each do |line|
+    UPLOAD_LIST_IDS.push(line)
+  end
+end
+
+def displayPlaylists
+  i=0
+  client, youtube = get_service
+  UPLOAD_LIST_IDS.each{|id|
+    playlistitems_response = client.execute!(
+        :api_method => youtube.playlists.list,
+        :parameters => {
+            :id => id,
+            :part => 'snippet',
+        }
+    )
+
+    playlistitems_response.data.items.each do |playlist_item|
+      puts String(i) << ' - '  << playlist_item['snippet']['title']
+      i+=1
+    end
+  }
+end
+
+def list_fetcher(index)
   client, youtube = get_service
 
   begin
-    uploads_list_id = File.read('upload_lists')
-
+    uploads_list_id = UPLOAD_LIST_IDS[index]
     playlistitems_response = client.execute!(
         :api_method => youtube.playlist_items.list,
         :parameters => {
@@ -49,23 +71,53 @@ def main
           }
       )
 
-
-      # Print information about each video.
-
       playlistitems_response.data.items.each do |playlist_item|
         title = playlist_item['snippet']['title']
         videos.push("#{title}")
       end
 
-
       next_page_token = playlistitems_response.next_page_token
     end
-    puts "Videos:\n", videos, "\n"
+    return videos
   end
 rescue Google::APIClient::TransmissionError => e
   puts e.result.body
 
-  return videos
 end
 
-main
+optparse = OptionParser.new do |opts|
+  videos = []
+  populatePlaylist
+
+  opts.on( '-s', '--search NAME', 'Find by string' ) do |name|
+    result = []
+    (Array (videos)).each do |elem|
+        if elem.include? name
+         result.push(elem)
+        end
+    end
+    puts result
+  end
+
+  opts.on( '-a', '--all', 'Fetches from all playlists' ) do
+    UPLOAD_LIST_IDS.length.times{|index| videos.push(list_fetcher(index))}
+  end
+
+  opts.on( '-p', '--playlist INDEX', 'Fetches from a specific playlist' ) do |index|
+    videos = list_fetcher(Integer(index))
+  end
+
+  opts.on( '-l', '--listplaylists', 'Displays all playlists') do
+    displayPlaylists
+  end
+
+  opts.on( '-d', '--display' , 'Displays all the songs in the playlists selected' )do
+    puts videos;
+  end
+
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+optparse.parse!
