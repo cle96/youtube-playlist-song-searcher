@@ -92,7 +92,7 @@ optparse = OptionParser.new do |opts|
   opts.on( '-s', '--search NAME', 'Find by string' ) do |name|
     result = []
     (Array (videos)).each do |elem|
-        if elem.include? name
+        if elem.include?(name)
          result.push(elem)
         end
     end
@@ -100,7 +100,7 @@ optparse = OptionParser.new do |opts|
   end
 
   opts.on( '-a', '--all', 'Fetches from all playlists' ) do
-    UPLOAD_LIST_IDS.length.times{|index| videos.push(list_fetcher(index))}
+    UPLOAD_LIST_IDS.length.times{|index| videos += list_fetcher(index)}
   end
 
   opts.on( '-p', '--playlist INDEX', 'Fetches from a specific playlist' ) do |index|
